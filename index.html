@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+  <title>Matopeli</title>
+</head>
+
+<body>
+  <script type="importmap">
+	{
+		"imports": {
+			"three": "./node_modules/three/build/three.module.js",
+      "three/examples/jsm/controls/OrbitControls": "./node_modules/three/examples/jsm/controls/OrbitControls.js",
+      "three/examples/jsm/libs/stats": "./node_modules/three/examples/jsm/libs/stats.module.js",
+			"three/addons/": "./jsm/"
+		}
+	}
+  </script>
+  <div class="container">
+    <div id="ohjeet">W-A-S-D-Q-E: Static</div>
+    <button id="btn" onclick="changeControls();">controls</button>
+    <div id="points">0</div>
+    <div id="scoreboard"></div>
+    <div id="game-frame"></div>
+    <script type="module" src="matopeli.js"></script>
+    <div class="mobileControls">
+      <button id="a">A</button>
+      <button id="s">S</button>
+      <button id="d">D</button>
+      <button id="w">W</button>
+      <button id="q">Q</button>
+      <button id="e">E</button>
+    </div>
+  </div>
+  <script>
+    function changeControls() {
+      let t = document.getElementById("ohjeet");
+      let q = document.getElementById("q");
+      let e = document.getElementById("e");
+      let a = document.getElementById("a");
+      let s = document.getElementById("s");
+      let d = document.getElementById("d");
+      let w = document.getElementById("w");
+      if (t.innerHTML == "W-A-S-D-Q-E: Static") {
+        t.innerHTML = "W-A-S-D: Perspective. Think like a worm!";
+        q.style.visibility = "hidden";
+        e.style.visibility = "hidden";
+        a.style.visibility = "visible";
+        s.style.visibility = "visible";
+        d.style.visibility = "visible";
+        w.style.visibility = "visible";
+      }
+      else {
+        t.innerHTML = "W-A-S-D-Q-E: Static";
+        q.style.visibility = "visible";
+        e.style.visibility = "visible";
+      }
+    }
+  </script>
+</body>
+
+</html>

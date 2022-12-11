@@ -1,0 +1,124 @@
+body {
+  overflow: hidden;
+  background-color: rgb(0, 0, 0);
+}
+
+.container {
+  display: grid;
+  grid-template-areas:
+    "pisteet ohjeet ohjaimet"
+    "peli peli peli"
+    ". mobile .";
+  justify-items: stretch;
+}
+
+.mobileControls {
+  visibility: hidden;
+  grid-area: mobile;
+  place-self: center;
+  display: grid;
+  justify-items: center;
+  grid-template-areas:
+    "q w e"
+    "a s d";
+  margin-bottom: 1em;
+}
+
+button {
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 2em;
+  background-color: black;
+  color: rgb(0, 255, 0);
+  border: 5px;
+  border-color: rgb(0, 255, 0);
+}
+
+#a {
+  height: 50px;
+  width: 50px;
+  grid-area: a;
+  margin: 10px;
+}
+
+#s {
+  height: 50px;
+  width: 50px;
+  grid-area: s;
+  margin: 10px;
+}
+
+#d {
+  height: 50px;
+  width: 50px;
+  grid-area: d;
+  margin: 10px;
+}
+
+#w {
+  height: 50px;
+  width: 50px;
+  grid-area: w;
+  margin: 10px;
+}
+
+#q {
+  height: 50px;
+  width: 50px;
+  grid-area: q;
+  margin: 10px;
+}
+
+#e {
+  height: 50px;
+  width: 50px;
+  grid-area: e;
+  margin: 10px;
+}
+
+#btn {
+  grid-area: ohjaimet;
+  place-self: center;
+}
+
+#points {
+  place-self: center;
+  grid-area: pisteet;
+  font-size: 4em;
+  color: rgb(0, 255, 0);
+}
+
+
+#ohjeet {
+  place-self: center;
+  grid-area: ohjeet;
+  font-size: 2em;
+  color: rgb(0, 255, 0);
+}
+
+#game-frame {
+  place-self: center;
+  grid-area: peli;
+}
+
+
+
+@media all and (max-width: 999px) {
+
+  #info {
+    font-size: 1em;
+  }
+
+  #ohjeet {
+    font-size: 1em;
+  }
+
+  #btn {
+    font-size: 1em;
+    ;
+  }
+
+  .mobileControls {
+    visibility: visible;
+  }
+
+}
