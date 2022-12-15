@@ -21,6 +21,7 @@ let nopeusMuuttunut = false;
 let visMato = [];
 let vel = [1, 0, 0];
 let omppu = [0, 0, 0];
+let stars = [];
 
 
 
@@ -446,11 +447,13 @@ function onLaitonSiirto() {
 
 }
 
+
 function pelaa() {
 	alusta();
 	luoKentta();
 	muutaNopeus();
 }
+
 
 function muutaNopeus() {
 	if (nopeusMuuttunut) {
@@ -467,23 +470,25 @@ function muutaNopeus() {
 
 import * as THREE from './node_modules/three/build/three.module';
 import { OrbitControls } from './node_modules/three/examples/jsm/controls/OrbitControls'
-
+const scene = new THREE.Scene();
 const container = document.getElementById("game-frame");
-let aButton, sButton, dButton, wButton, qButton, eButton;
-let camera, scene, renderer;
+const geometry = new THREE.BoxGeometry(0.8, 0.8, 0.8);
+const materialMato = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true });
+const materialOmppu = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
+const amount = 10; // map size amount*amount*amount
+
+let renderer, camera;
 let guiKentta = [];
 let guiSeinat = [];
 let colorWall = 0x000033;
 let colorShadow = 0x552200;
-
-const amount = 10;
+let cameraReady = false;
 
 init();
 
 function init() {
 	container.innerWidth = window.innerWidth
 	container.innerHeight = window.innerHeight - 200;
-	scene = new THREE.Scene();
 
 	camera = new THREE.PerspectiveCamera(
 		70,
@@ -492,24 +497,23 @@ function init() {
 		1000);
 	camera.position.x = 0;
 	camera.position.y = 0;
-	camera.position.z = 15;
-	camera.lookAt(lastX, lastY, lastZ)
-
-	//
+	camera.position.z = 32 * amount;
+	camera.lookAt(lastX, lastY, lastZ);
 
 	renderer = new THREE.WebGLRenderer({ antialias: true });
 	renderer.setPixelRatio(window.devicePixelRatio);
 	renderer.setSize(container.innerWidth, container.innerHeight);
 	container.appendChild(renderer.domElement);
 
-	new OrbitControls(camera, renderer.domElement)
+	//new OrbitControls(camera, renderer.domElement);
+
 	window.addEventListener('resize', onWindowResize);
-	aButton = document.getElementById("a");
-	sButton = document.getElementById("s");
-	dButton = document.getElementById("d");
-	wButton = document.getElementById("w");
-	qButton = document.getElementById("q");
-	eButton = document.getElementById("e");
+	const aButton = document.getElementById("a");
+	const sButton = document.getElementById("s");
+	const dButton = document.getElementById("d");
+	const wButton = document.getElementById("w");
+	const qButton = document.getElementById("q");
+	const eButton = document.getElementById("e");
 	aButton.onclick = function () { ohjaa("a"); }
 	sButton.onclick = function () { ohjaa("s"); }
 	dButton.onclick = function () { ohjaa("d"); }
@@ -517,19 +521,27 @@ function init() {
 	qButton.onclick = function () { ohjaa("q"); }
 	eButton.onclick = function () { ohjaa("e"); }
 
-
-	//
 	makeWalls();
-	pelaa();
 	animate();
+	createStars();
+	pelaa();
 }
 
 
 function animate() {
 	requestAnimationFrame(animate);
-
+	moveStars();
+	if (!cameraReady) {
+		if (camera.position.z >= 1.6 * amount) {
+			camera.position.z -= 0.8;
+		} else {
+			new OrbitControls(camera, renderer.domElement);
+			cameraReady = true;
+		}
+	}
 	renderer.render(scene, camera);
 }
+
 
 function makeWalls() {
 	const geometry = new THREE.BoxGeometry(1, 1, 1);
@@ -592,9 +604,6 @@ function draw() {
 	}
 
 	guiKentta = [];
-	const geometry = new THREE.BoxGeometry(0.8, 0.8, 0.8);
-	const materialMato = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true });
-	const materialOmppu = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
 
 	for (let i = 0; i < visMato.length; i++) {
 		let meshMato = new THREE.Mesh(geometry, materialMato);
@@ -617,38 +626,37 @@ function draw() {
 	renderer.render(scene, camera);
 }
 
+
 function updatePoints() {
 	document.getElementById("points").innerHTML = pisteet;
 }
 
+
 function lisaaApuviivat() {
-
-
-	if (pisteet == 50) {
+	if (pisteet == 128) {
 		colorWall = 0x111111;
 		colorShadow = 0x222222;
 	}
-	if (pisteet == 40) {
-		colorWall = 0x880000;
-		colorShadow = 0x000000;
+	if (pisteet == 64) {
+		colorWall = 0x200202;
+		colorShadow = 0x010101;
 	}
-	if (pisteet == 30) {
+	if (pisteet == 32) {
 		colorWall = 0x220022;
 		colorShadow = 0x223000;
 	}
-	if (pisteet == 20) {
+	if (pisteet == 16) {
 		colorWall = 0x000033;
 		colorShadow = 0x552200;
 	}
-	if (pisteet == 10) {
+	if (pisteet == 8) {
 		colorWall = 0x050505;
 		colorShadow = 0x0202ff;
 	}
-	if (pisteet < 10) {
+	if (pisteet < 8) {
 		colorWall = 0x000099;
 		colorShadow = 0x000033;
 	}
-
 
 	for (let i = 0; i < guiSeinat.length; i++) {
 		if (lastX == guiSeinat[i].position.x + amount / 2 || lastY == guiSeinat[i].position.y + amount / 2 || lastZ == guiSeinat[i].position.z + amount / 2) {
@@ -666,4 +674,27 @@ function onWindowResize() {
 	camera.aspect = container.innerWidth / container.innerHeight;
 	camera.updateProjectionMatrix();
 	renderer.setSize(container.innerWidth, container.innerHeight);
+}
+
+
+function createStars() {
+	for (let i = 0; i < 2048; i++) {
+		let x = Math.random() * 512 - 256;
+		let y = Math.random() * 512 - 256;
+		let z = Math.random() * 512 - 256;
+		let star = new THREE.Mesh(new THREE.SphereGeometry(.2), new THREE.MeshBasicMaterial());
+		star.position.x = x;
+		star.position.y = y;
+		star.position.z = z;
+		stars[i] = star;
+		scene.add(star);
+	}
+}
+
+function moveStars() {
+	let speed = nopeus;
+	for (let i = 0; i < stars.length; i++) {
+		stars[i].position.z += speed / 64 * speed;
+		if (stars[i].position.z >= 256) stars[i].position.z = -256;
+	}
 }
