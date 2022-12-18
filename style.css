@@ -38,6 +38,7 @@ button {
   width: 50px;
   grid-area: a;
   margin: 10px;
+  padding-bottom: 10px;
 }
 
 #s {
@@ -45,6 +46,7 @@ button {
   width: 50px;
   grid-area: s;
   margin: 10px;
+  padding-bottom: 10px;
 }
 
 #d {
@@ -52,6 +54,7 @@ button {
   width: 50px;
   grid-area: d;
   margin: 10px;
+  padding-bottom: 10px;
 }
 
 #w {

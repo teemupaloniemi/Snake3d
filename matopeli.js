@@ -1,472 +1,479 @@
-let timer;
-// kentta
-const tiles = 10;
-let alkiot = [];
-let paikkaKentta = 0;
-let paikkaMato = 0;
+// START ENGINE
+class SnakeEngine {
+	constructor() {
+		// kentta
+		this.tiles = 10;
+		this.alkiot = [];
+		this.paikkaKentta = 0;
+		this.paikkaMato = 0;
 
+		// ohjaus
+		this.lastMove = 0;
+		this.lastHorizontal = [-1, 0];
+		this.lastVertical = -1;
+		this.lastX = 0;
+		this.lastY = 0;
+		this.lastZ = 0;
+		this.pisteet = 0;
+		this.nopeus = 5;
+		this.timer;
+		this.nopeusMuuttunut = false;
 
-// ohjaus
-let lastMove = 0;
-let lastHorizontal = [-1, 0];
-let lastVertical = -1;
-let lastX = 0;
-let lastY = 0;
-let lastZ = 0;
-let pisteet = 0;
-let nopeus = 5;
-let nopeusMuuttunut = false;
+		// animaatio
+		this.visMato = [];
+		this.vel = [1, 0, 0];
+		this.omppu = [0, 0, 0];
+	}
 
-// animaatio
-let visMato = [];
-let vel = [1, 0, 0];
-let omppu = [0, 0, 0];
-let stars = [];
-
-
-
-function luoKentta() {
-	for (let kerros = -amount / 2; kerros < tiles / 2; kerros++) {
-		for (let rivi = -amount / 2; rivi < tiles / 2; rivi++) {
-			for (let sarake = -amount / 2; sarake < tiles / 2; sarake++) {
-				alkiot[paikkaKentta] = [rivi, sarake, kerros, 0];
-				paikkaKentta++;
+	/*
+	* Luodaan kentta 
+	*/
+	luoKentta() {
+		for (let kerros = -this.tiles / 2; kerros < this.tiles / 2; kerros++) {
+			for (let rivi = -this.tiles / 2; rivi < this.tiles / 2; rivi++) {
+				for (let sarake = -this.tiles / 2; sarake < this.tiles / 2; sarake++) {
+					this.alkiot[this.paikkaKentta] = [rivi, sarake, kerros, 0];
+					this.paikkaKentta++;
+				}
 			}
 		}
 	}
-}
 
 
-/**
- * Asetetaan madon viimeisimm�n paikan xyz koorinaatit
- * @param x madon viimeisin x
- * @param y madon viimeisin y
- * @param z madon viimeisin z
- */
-function setLastXYZ(x, y, z) {
-	lastX = x;
-	lastY = y;
-	lastZ = z;
-}
-
-
-/**
- * Lis�t��n matoon uusi palikka 
- * @param x uuden palikan x-koordinaatti
- * @param y uuden palikan y-koordinaatti
- * @param z uuden palikan z-koordinaatti
- */
-function matoLisaaPalikka(x, y, z) {
-	visMato[paikkaMato] = [x, y, z];
-	paikkaMato++;
-}
-
-
-/**
- * Muutetaan noupeusvektoria joka ohjaa madon liiketta
- * @param x vektorin x-suuruus 
- * @param y vektorin y-suuruus 
- * @param z vektorin z-suuruus 
- */
-function setVelocity(x, y, z) {
-	vel = [x, y, z];
-}
-
-
-/**
- * Alustetaan mato ja kentta
- */
-function alusta() {
-	paikkaMato = 0;
-	visMato = [];
-	lastMove = 0;
-	lastHorizontal = [-1, 0];
-	lastVertical = -1;
-	let puolivali = tiles / 2;
-	setVelocity(1, 0, 0);
-	matoLisaaPalikka(0, puolivali, puolivali);
-	matoLisaaPalikka(1, puolivali, puolivali);
-	matoLisaaPalikka(2, puolivali, puolivali);
-	setLastXYZ(2, puolivali, puolivali);
-}
-
-
-/**
- * Piirret��n mato kentt��n 
- */
-function piirraMato() {
-	for (let i = 0; i < alkiot.length; i++) {
-		alkiot[i][3] = 0;
-	}
-	for (let j = 0; j < visMato.length; j++) {
-		for (let k = 0; k < alkiot.length; k++) {
-			if (onMato(alkiot[k], visMato[j])) {
-				alkiot[k] = [visMato[j][0], visMato[j][1], visMato[j][2], 1];
-			} else if (onOmppu(alkiot[k])) {
-				alkiot[k] = [omppu[0], omppu[1], omppu[2], 2];
-			}
-		}
-	}
-	draw();
-}
-
-
-/**
- * Tarkistetaan vastaako annettu kent�n osa 
- * madon osaa  
- * @param box kentan osa 
- * @param mato madon osa
- * @return true jos ovat samat 
- */
-function onMato(box, mato) {
-	return box[0] == mato[0] && box[1] == mato[1] && box[2] == mato[2];
-}
-
-
-/**
- * Tarkistetaan vastaako annettu kent�n osa 
- * omenaa  
- * @param box kentan osa 
- * @return true jos ovat samat 
- */
-function onOmppu(box) {
-	return box[0] == omppu[0] && box[1] == omppu[1] && box[2] == omppu[2];
-}
-
-
-/**
- * Liikutetaan matoa velocity vektorin osoittamaan suuntaan 
- */
-function liikutaMato() {
-	lastX += vel[0];
-	lastY += vel[1];
-	lastZ += vel[2];
-	if (onLaitonSiirto()) {
-		pisteet = 0;
-		nopeus = 5;
-		nopeusMuuttunut = true;
-		muutaNopeus();
-		alusta();
-		return;
-	}
-	if (syoOmpun(lastX, lastY, lastZ)) {
-		pisteet += 1;
-		updatePoints();
-		if (pisteet > 0 && pisteet % 10 == 0) {
-			if (nopeus < 10) {
-				nopeus++;
-				nopeusMuuttunut = true;
-				muutaNopeus();
-			}
-		}
-		luoOmppu();
-	} else {
-		visMato.splice(0, 1);
-	}
-	visMato.push([lastX, lastY, lastZ]);
-	piirraMato();
-}
-
-document.addEventListener('keydown', (event) => { ohjaa(event.key) });
-function ohjaa(key) {
-	if (document.getElementById("ohjeet").innerHTML == "W-A-S-D-Q-E: Static") {
-		// Vasen
-		if (lastMove != "d" && key == "a") {
-			lastMove = "a";
-			setVelocity(-1, 0, 0);
-		}
-		// Oikee
-		else if (lastMove != "a" && key == "d") {
-			lastMove = "d";
-			setVelocity(1, 0, 0);
-		}
-		// Ylos 
-		else if (lastMove != "w" && key == "s") {
-			lastMove = "s";
-			setVelocity(0, -1, 0);
-		}
-		// Alas
-		else if (lastMove != "s" && key == "w") {
-			lastMove = "w";
-			setVelocity(0, 1, 0);
-		}
-		else if (lastMove != "q" && key == "e") {
-			lastMove = "e";
-			setVelocity(0, 0, 1);
-		}
-		else if (lastMove != "e" && key == "q") {
-			lastMove = "q";
-			setVelocity(0, 0, -1);
-		}
-		liikutaMato();
-		return;
-	}
-	//TODO: perspektiiviset ohjaukset
-
-	// persp. vasen
-	if (key == "a") {
-		lastMove = "a";
-		if (vel[2] == 0) {
-			if (vel[0] == 1 && vel[1] == 0) {
-				setVelocity(0, 1, 0);
-			}
-			else if (vel[0] == -1 && vel[1] == 0) {
-				setVelocity(0, -1, 0);
-			}
-			else if (vel[0] == 0 && vel[1] == -1) {
-				setVelocity(1, 0, 0);
-			}
-			else if (vel[0] == 0 && vel[1] == 1) {
-				setVelocity(-1, 0, 0);
-			}
-		}
-		else if (vel[2] == 1) {
-			if (lastHorizontal[0] == 1 && lastHorizontal[1] == 0) {
-				setVelocity(0, -1, 0);
-			}
-			else if (lastHorizontal[0] == -1 && lastHorizontal[1] == 0) {
-				setVelocity(0, 1, 0);
-			}
-			else if (lastHorizontal[0] == 0 && lastHorizontal[1] == 1) {
-				setVelocity(-1, 0, 0);
-			}
-			else if (lastHorizontal[0] == 0 && lastHorizontal[1] == -1) {
-				setVelocity(1, 0, 0);
-			}
-		}
-		else if (vel[2] == -1) {
-			if (lastHorizontal[0] == 1 && lastHorizontal[1] == 0) {
-				setVelocity(0, 1, 0);
-			}
-			else if (lastHorizontal[0] == -1 && lastHorizontal[1] == 0) {
-				setVelocity(0, -1, 0);
-			}
-			else if (lastHorizontal[0] == 0 && lastHorizontal[1] == 1) {
-				setVelocity(-1, 0, 0);
-			}
-			else if (lastHorizontal[0] == 0 && lastHorizontal[1] == -1) 7
-			setVelocity(1, 0, 0);
-		}
-		liikutaMato();
-		return;
+	/**
+	 * Asetetaan madon viimeisimm�n paikan xyz koorinaatit
+	 * @param x madon viimeisin x
+	 * @param y madon viimeisin y
+	 * @param z madon viimeisin z
+	 */
+	setLastXYZ(x, y, z) {
+		this.lastX = x;
+		this.lastY = y;
+		this.lastZ = z;
 	}
 
-	//  persp.Oikee
-	if (key == "d") {
-		lastMove = "d";
-		if (vel[2] == 0) {
-			if (vel[0] == 1 && vel[1] == 0) {
-				setVelocity(0, -1, 0);
-			}
-			else if (vel[0] == -1 && vel[1] == 0) {
-				setVelocity(0, 1, 0);
-			}
-			else if (vel[0] == 0 && vel[1] == -1) {
-				setVelocity(-1, 0, 0);
-			}
-			else if (vel[0] == 0 && vel[1] == 1) {
-				setVelocity(1, 0, 0);
-			}
-		}
-		else if (vel[2] == 1) {
-			if (lastHorizontal[0] == 1 && lastHorizontal[1] == 0) {
-				setVelocity(0, -1, 0);
-			}
-			else if (lastHorizontal[0] == -1 && lastHorizontal[1] == 0) {
-				setVelocity(0, 1, 0);
-			}
-			else if (lastHorizontal[0] == 0 && lastHorizontal[1] == 1) {
-				setVelocity(1, 0, 0);
-			}
-			else if (lastHorizontal[0] == 0 && lastHorizontal[1] == -1) {
-				setVelocity(-1, 0, 0);
-			}
-		}
-		else if (vel[2] == -1) {
-			if (lastHorizontal[0] == 1 && lastHorizontal[1] == 0) {
-				setVelocity(0, -1, 0);
-			}
-			else if (lastHorizontal[0] == -1 && lastHorizontal[1] == 0) {
-				setVelocity(0, 1, 0);
-			}
-			else if (lastHorizontal[0] == 0 && lastHorizontal[1] == 1) {
-				setVelocity(1, 0, 0);
-			}
-			else if (lastHorizontal[0] == 0 && lastHorizontal[1] == -1) {
-				setVelocity(-1, 0, 0);
-			}
-		}
-		lastHorizontal = [vel[0], vel[1]];
-		liikutaMato();
-		return;
+
+	/**
+	 * Lis�t��n matoon uusi palikka 
+	 * @param x uuden palikan x-koordinaatti
+	 * @param y uuden palikan y-koordinaatti
+	 * @param z uuden palikan z-koordinaatti
+	 */
+	matoLisaaPalikka(x, y, z) {
+		this.visMato[this.paikkaMato] = [x, y, z];
+		this.paikkaMato++;
 	}
 
-	//  persp. Ylos 
-	if (key == "w") {
-		lastMove == "w";
-		if (vel[2] == 0) {
-			if (lastVertical == 1) {
-				setVelocity(0, 0, -1);
-				lastVertical = -1;
-			} else if (lastVertical == -1) {
-				setVelocity(0, 0, 1);
-				lastVertical = 1;
-			}
-		}
-		else if (vel[2] == 1) {
-			if (lastHorizontal[0] == 1 && lastHorizontal[1] == 0) {
-				console.log(1)
-				setVelocity(-1, 0, 0);
-			}
-			else if (lastHorizontal[0] == -1 && lastHorizontal[1] == 0) {
-				console.log(2)
-				setVelocity(1, 0, 0);
-			}
-			else if (lastHorizontal[0] == 0 && lastHorizontal[1] == 1) {
-				console.log(3)
-				setVelocity(0, -1, 0);
-			}
-			else if (lastHorizontal[0] == 0 && lastHorizontal[1] == -1) {
-				console.log(4)
-				setVelocity(0, 1, 0);
-			}
-		}
-		else if (vel[2] == -1) {
-			if (lastHorizontal[0] == 1 && lastHorizontal[1] == 0) {
-				setVelocity(1, 0, 0);
-			}
-			else if (lastHorizontal[0] == -1 && lastHorizontal[1] == 0) {
-				setVelocity(-1, 0, 0);
-			}
-			else if (lastHorizontal[0] == 0 && lastHorizontal[1] == 1) {
-				setVelocity(0, 1, 0);
-			}
-			else if (lastHorizontal[0] == 0 && lastHorizontal[1] == -1) {
-				setVelocity(0, -1, 0);
-			}
-		}
-		liikutaMato();
-		return;
+
+	/**
+	 * Muutetaan noupeusvektoria joka ohjaa madon liiketta
+	 * @param x vektorin x-suuruus 
+	 * @param y vektorin y-suuruus 
+	 * @param z vektorin z-suuruus 
+	 */
+	setVelocity(x, y, z) {
+		this.vel = [x, y, z];
 	}
 
-	//  persp. Alas
-	if (key == "s") {
-		lastMove = "s";
-		if (vel[2] == 0) {
-			if (lastVertical == 1) {
-				setVelocity(0, 0, -1);
-				lastVertical = -1;
-			}
-			else if (lastVertical == -1) {
-				setVelocity(0, 0, 1);
-				lastVertical = 1;
-			}
-		}
-		else if (vel[2] == 1) {
-			if (lastHorizontal[0] == 1 && lastHorizontal[1] == 0) {
-				setVelocity(1, 0, 0);
-			}
-			else if (lastHorizontal[0] == -1 && lastHorizontal[1] == 0) {
-				setVelocity(-1, 0, 0);
-			}
-			else if (lastHorizontal[0] == 0 && lastHorizontal[1] == 1) {
-				setVelocity(0, 1, 0);
-			}
-			else if (lastHorizontal[0] == 0 && lastHorizontal[1] == -1) {
-				setVelocity(0, -1, 0);
-			}
-		}
-		else if (vel[2] == -1) {
-			if (lastHorizontal[0] == 1 && lastHorizontal[1] == 0) {
-				setVelocity(-1, 0, 0);
-			}
-			else if (lastHorizontal[0] == -1 && lastHorizontal[1] == 0) {
-				setVelocity(1, 0, 0);
-			}
-			else if (lastHorizontal[0] == 0 && lastHorizontal[1] == 1) {
-				setVelocity(0, 1, 0);
-			}
-			else if (lastHorizontal[0] == 0 && lastHorizontal[1] == -1) {
-				setVelocity(0, -1, 0);
-			}
-		}
-		liikutaMato();
-		return;
+	/**
+	 * Alustetaan mato ja kentta
+	 */
+	alusta() {
+		this.paikkaMato = 0;
+		this.visMato = [];
+		this.lastMove = 0;
+		this.lastHorizontal = [-1, 0];
+		this.lastVertical = -1;
+		const puolivali = this.tiles / 2;
+		this.setVelocity(1, 0, 0);
+		this.matoLisaaPalikka(0, puolivali, puolivali);
+		this.matoLisaaPalikka(1, puolivali, puolivali);
+		this.matoLisaaPalikka(2, puolivali, puolivali);
+		this.setLastXYZ(2, puolivali, puolivali);
 	}
-}
 
 
-/**
- * Luodaan omena random xyz koordinaattiin kent�ll� 
- */
-function luoOmppu() {
-	let omppuX = Math.floor(Math.random() * tiles);
-	let omppuY = Math.floor(Math.random() * tiles);
-	let omppuZ = Math.floor(Math.random() * tiles);
+	/**
+	 * Piirret��n mato kentt��n 
+	 */
+	piirraMato() {
+		for (let i = 0; i < this.alkiot.length; i++) {
+			this.alkiot[i][3] = 0;
+		}
+		for (let j = 0; j < this.visMato.length; j++) {
+			for (let k = 0; k < this.alkiot.length; k++) {
+				if (this.onMato(this.alkiot[k], this.visMato[j])) {
+					this.alkiot[k] = [this.visMato[j][0], this.visMato[j][1], this.visMato[j][2], 1];
+				} else if (this.onOmppu(this.alkiot[k])) {
+					this.alkiot[k] = [this.omppu[0], this.omppu[1], this.omppu[2], 2];
+				}
+			}
+		}
+		draw();
+	}
 
-	for (let i = 0; i < visMato.length; i++) {
-		if (visMato[i][0] == omppuX && visMato[i][1] == omppuY && visMato[i][2] == omppuZ) {
-			luoOmppu();
+
+	/**
+	 * Tarkistetaan vastaako annettu kent�n osa 
+	 * madon osaa  
+	 * @param box kentan osa 
+	 * @param mato madon osa
+	 * @return true jos ovat samat 
+	 */
+	onMato(box, mato) {
+		return box[0] == mato[0] && box[1] == mato[1] && box[2] == mato[2];
+	}
+
+
+	/**
+	 * Tarkistetaan vastaako annettu kent�n osa 
+	 * omenaa  
+	 * @param box kentan osa 
+	 * @return true jos ovat samat 
+	 */
+	onOmppu(box) {
+		return box[0] == this.omppu[0] && box[1] == this.omppu[1] && box[2] == this.omppu[2];
+	}
+
+
+	/**
+	 * Liikutetaan matoa velocity vektorin osoittamaan suuntaan 
+	 */
+	liikutaMato() {
+		this.lastX += this.vel[0];
+		this.lastY += this.vel[1];
+		this.lastZ += this.vel[2];
+		if (this.onLaitonSiirto()) {
+			this.pisteet = 0;
+			this.nopeus = 5;
+			this.nopeusMuuttunut = true;
+			this.muutaNopeus();
+			this.alusta();
+			return;
+		}
+		if (this.syoOmpun(this.lastX, this.lastY, this.lastZ)) {
+			this.pisteet += 1;
+			updatePoints(); //update in GUI 
+			if (this.pisteet > 0 && this.pisteet % 10 == 0) {
+				if (this.nopeus < 10) {
+					this.nopeus++;
+					this.nopeusMuuttunut = true;
+					this.muutaNopeus();
+				}
+			}
+			this.luoOmppu();
+		} else {
+			this.visMato.splice(0, 1);
+		}
+		this.visMato.push([this.lastX, this.lastY, this.lastZ]);
+		this.piirraMato();
+	}
+
+
+	//connect eventListener to this
+	//document.addEventListener('keydown', (event) => { this.ohjaa(event.key) });
+	ohjaa(key) {
+		if (document.getElementById("ohjeet").innerHTML == "W-A-S-D-Q-E: Static") {
+			// Vasen
+			if (this.lastMove != "d" && key == "a") {
+				this.lastMove = "a";
+				this.setVelocity(-1, 0, 0);
+			}
+			// Oikee
+			else if (this.lastMove != "a" && key == "d") {
+				this.lastMove = "d";
+				this.setVelocity(1, 0, 0);
+			}
+			// Ylos 
+			else if (this.lastMove != "w" && key == "s") {
+				this.lastMove = "s";
+				this.setVelocity(0, -1, 0);
+			}
+			// Alas
+			else if (this.lastMove != "s" && key == "w") {
+				this.lastMove = "w";
+				this.setVelocity(0, 1, 0);
+			}
+			else if (this.lastMove != "q" && key == "e") {
+				this.lastMove = "e";
+				this.setVelocity(0, 0, 1);
+			}
+			else if (this.lastMove != "e" && key == "q") {
+				this.lastMove = "q";
+				this.setVelocity(0, 0, -1);
+			}
+			this.liikutaMato();
+			return;
+		}
+
+		// persp. vasen
+		if (key == "a") {
+			this.lastMove = "a";
+			if (this.vel[2] == 0) {
+				if (this.vel[0] == 1 && this.vel[1] == 0) {
+					this.setVelocity(0, 1, 0);
+				}
+				else if (this.vel[0] == -1 && this.vel[1] == 0) {
+					this.setVelocity(0, -1, 0);
+				}
+				else if (this.vel[0] == 0 && this.vel[1] == -1) {
+					this.setVelocity(1, 0, 0);
+				}
+				else if (this.vel[0] == 0 && this.vel[1] == 1) {
+					this.setVelocity(-1, 0, 0);
+				}
+			}
+			else if (this.vel[2] == 1) {
+				if (this.lastHorizontal[0] == 1 && this.lastHorizontal[1] == 0) {
+					this.setVelocity(0, -1, 0);
+				}
+				else if (this.lastHorizontal[0] == -1 && this.lastHorizontal[1] == 0) {
+					this.setVelocity(0, 1, 0);
+				}
+				else if (this.lastHorizontal[0] == 0 && this.lastHorizontal[1] == 1) {
+					this.setVelocity(-1, 0, 0);
+				}
+				else if (this.lastHorizontal[0] == 0 && this.lastHorizontal[1] == -1) {
+					this.setVelocity(1, 0, 0);
+				}
+			}
+			else if (this.vel[2] == -1) {
+				if (this.lastHorizontal[0] == 1 && this.lastHorizontal[1] == 0) {
+					this.setVelocity(0, 1, 0);
+				}
+				else if (this.lastHorizontal[0] == -1 && this.lastHorizontal[1] == 0) {
+					this.setVelocity(0, -1, 0);
+				}
+				else if (this.lastHorizontal[0] == 0 && this.lastHorizontal[1] == 1) {
+					this.setVelocity(-1, 0, 0);
+				}
+				else if (this.lastHorizontal[0] == 0 && this.lastHorizontal[1] == -1) 7
+				this.setVelocity(1, 0, 0);
+			}
+			this.liikutaMato();
+			return;
+		}
+
+		//  persp.Oikee
+		if (key == "d") {
+			this.lastMove = "d";
+			if (this.vel[2] == 0) {
+				if (this.vel[0] == 1 && this.vel[1] == 0) {
+					this.setVelocity(0, -1, 0);
+				}
+				else if (this.vel[0] == -1 && this.vel[1] == 0) {
+					this.setVelocity(0, 1, 0);
+				}
+				else if (this.vel[0] == 0 && this.vel[1] == -1) {
+					this.setVelocity(-1, 0, 0);
+				}
+				else if (this.vel[0] == 0 && this.vel[1] == 1) {
+					this.setVelocity(1, 0, 0);
+				}
+			}
+			else if (this.vel[2] == 1) {
+				if (this.lastHorizontal[0] == 1 && this.lastHorizontal[1] == 0) {
+					this.setVelocity(0, -1, 0);
+				}
+				else if (this.lastHorizontal[0] == -1 && this.lastHorizontal[1] == 0) {
+					this.setVelocity(0, 1, 0);
+				}
+				else if (this.lastHorizontal[0] == 0 && this.lastHorizontal[1] == 1) {
+					this.setVelocity(1, 0, 0);
+				}
+				else if (this.lastHorizontal[0] == 0 && this.lastHorizontal[1] == -1) {
+					this.setVelocity(-1, 0, 0);
+				}
+			}
+			else if (this.vel[2] == -1) {
+				if (this.lastHorizontal[0] == 1 && this.lastHorizontal[1] == 0) {
+					this.setVelocity(0, -1, 0);
+				}
+				else if (this.lastHorizontal[0] == -1 && this.lastHorizontal[1] == 0) {
+					this.setVelocity(0, 1, 0);
+				}
+				else if (this.lastHorizontal[0] == 0 && this.lastHorizontal[1] == 1) {
+					this.setVelocity(1, 0, 0);
+				}
+				else if (this.lastHorizontal[0] == 0 && this.lastHorizontal[1] == -1) {
+					this.setVelocity(-1, 0, 0);
+				}
+			}
+			this.lastHorizontal = [this.vel[0], this.vel[1]];
+			this.liikutaMato();
+			return;
+		}
+
+		//  persp. Ylos 
+		if (key == "w") {
+			this.lastMove == "w";
+			if (this.vel[2] == 0) {
+				if (this.lastVertical == 1) {
+					this.setVelocity(0, 0, -1);
+					this.lastVertical = -1;
+				} else if (this.lastVertical == -1) {
+					this.setVelocity(0, 0, 1);
+					this.lastVertical = 1;
+				}
+			}
+			else if (this.vel[2] == 1) {
+				if (this.lastHorizontal[0] == 1 && this.lastHorizontal[1] == 0) {
+					console.log(1)
+					this.setVelocity(-1, 0, 0);
+				}
+				else if (this.lastHorizontal[0] == -1 && this.lastHorizontal[1] == 0) {
+					console.log(2)
+					this.setVelocity(1, 0, 0);
+				}
+				else if (this.lastHorizontal[0] == 0 && this.lastHorizontal[1] == 1) {
+					console.log(3)
+					this.setVelocity(0, -1, 0);
+				}
+				else if (this.lastHorizontal[0] == 0 && this.lastHorizontal[1] == -1) {
+					console.log(4)
+					this.setVelocity(0, 1, 0);
+				}
+			}
+			else if (this.vel[2] == -1) {
+				if (this.lastHorizontal[0] == 1 && this.lastHorizontal[1] == 0) {
+					this.setVelocity(1, 0, 0);
+				}
+				else if (this.lastHorizontal[0] == -1 && this.lastHorizontal[1] == 0) {
+					this.setVelocity(-1, 0, 0);
+				}
+				else if (this.lastHorizontal[0] == 0 && this.lastHorizontal[1] == 1) {
+					this.setVelocity(0, 1, 0);
+				}
+				else if (this.lastHorizontal[0] == 0 && this.lastHorizontal[1] == -1) {
+					this.setVelocity(0, -1, 0);
+				}
+			}
+			this.liikutaMato();
+			return;
+		}
+
+		//  persp. Alas
+		if (key == "s") {
+			this.lastMove = "s";
+			if (this.vel[2] == 0) {
+				if (this.lastVertical == 1) {
+					this.setVelocity(0, 0, -1);
+					this.lastVertical = -1;
+				}
+				else if (this.lastVertical == -1) {
+					this.setVelocity(0, 0, 1);
+					this.lastVertical = 1;
+				}
+			}
+			else if (this.vel[2] == 1) {
+				if (this.lastHorizontal[0] == 1 && this.lastHorizontal[1] == 0) {
+					this.setVelocity(1, 0, 0);
+				}
+				else if (this.lastHorizontal[0] == -1 && this.lastHorizontal[1] == 0) {
+					this.setVelocity(-1, 0, 0);
+				}
+				else if (this.lastHorizontal[0] == 0 && this.lastHorizontal[1] == 1) {
+					this.setVelocity(0, 1, 0);
+				}
+				else if (this.lastHorizontal[0] == 0 && this.lastHorizontal[1] == -1) {
+					this.setVelocity(0, -1, 0);
+				}
+			}
+			else if (this.vel[2] == -1) {
+				if (this.lastHorizontal[0] == 1 && this.lastHorizontal[1] == 0) {
+					this.setVelocity(-1, 0, 0);
+				}
+				else if (this.lastHorizontal[0] == -1 && this.lastHorizontal[1] == 0) {
+					this.setVelocity(1, 0, 0);
+				}
+				else if (this.lastHorizontal[0] == 0 && this.lastHorizontal[1] == 1) {
+					this.setVelocity(0, 1, 0);
+				}
+				else if (this.lastHorizontal[0] == 0 && this.lastHorizontal[1] == -1) {
+					this.setVelocity(0, -1, 0);
+				}
+			}
+			this.liikutaMato();
 			return;
 		}
 	}
-	omppu[0] = omppuX;
-	omppu[1] = omppuY;
-	omppu[2] = omppuZ;
-}
 
 
-/**
- * Tarkistetaan johtaako seuraava siirto omenan sy�ntiin 
- * @param x seuraava x-koordinaatti
- * @param y seuraava y-koordinaatti
- * @param z seuraava z-koordinaatti
- * @return true jos sy�d��n omppu 
- */
-function syoOmpun(x, y, z) {
-	return (x == omppu[0] && y == omppu[1] && z == omppu[2]);
-}
+	/**
+	 * Luodaan omena random xyz koordinaattiin kent�ll� 
+	 */
+	luoOmppu() {
+		let omppuX = Math.floor(Math.random() * this.tiles);
+		let omppuY = Math.floor(Math.random() * this.tiles);
+		let omppuZ = Math.floor(Math.random() * this.tiles);
 
-
-/**
- * Tarkistetaan onko laiton siirto 
- * @return true jos on laiton siirto 
- */
-function onLaitonSiirto() {
-	if (lastY >= tiles || lastY < 0 || lastX >= tiles || lastX < 0 || lastZ >= tiles || lastZ < 0) {
-		console.log("Osuit seinaan!");
-		return true;
+		for (let i = 0; i < this.visMato.length; i++) {
+			if (this.visMato[i][0] == omppuX && this.visMato[i][1] == omppuY && this.visMato[i][2] == omppuZ) {
+				this.luoOmppu();
+				return;
+			}
+		}
+		this.omppu[0] = omppuX;
+		this.omppu[1] = omppuY;
+		this.omppu[2] = omppuZ;
 	}
-	for (let i = 0; i < visMato.length; i++) {
-		if (lastX == visMato[i][0] && lastY == visMato[i][1] && lastZ == visMato[i][2]) {
-			console.log("Osuit itseesi!");
+
+
+	/**
+	 * Tarkistetaan johtaako seuraava siirto omenan sy�ntiin 
+	 * @param x seuraava x-koordinaatti
+	 * @param y seuraava y-koordinaatti
+	 * @param z seuraava z-koordinaatti
+	 * @return true jos sy�d��n omppu 
+	 */
+	syoOmpun(x, y, z) {
+		return (x == this.omppu[0] && y == this.omppu[1] && z == this.omppu[2]);
+	}
+
+
+	/**
+	 * Tarkistetaan onko laiton siirto 
+	 * @return true jos on laiton siirto 
+	 */
+	onLaitonSiirto() {
+		if (this.lastY >= this.tiles || this.lastY < 0 || this.lastX >= this.tiles || this.lastX < 0 || this.lastZ >= this.tiles || this.lastZ < 0) {
+			console.log("Osuit seinaan!");
 			return true;
 		}
+		for (let i = 0; i < this.visMato.length; i++) {
+			if (this.lastX == this.visMato[i][0] && this.lastY == this.visMato[i][1] && this.lastZ == this.visMato[i][2]) {
+				console.log("Osuit itseesi!");
+				return true;
+			}
+		}
+		return false;
 	}
-	return false;
-
-}
 
 
-function pelaa() {
-	alusta();
-	luoKentta();
-	muutaNopeus();
-}
-
-
-function muutaNopeus() {
-	if (nopeusMuuttunut) {
-		clearInterval(timer);
-		nopeusMuuttunut = false;
+	/*
+	* Changiing the speed of the worm
+	*/
+	muutaNopeus() {
+		if (this.nopeusMuuttunut) {
+			clearInterval(this.timer);
+			this.nopeusMuuttunut = false;
+		}
+		this.timer = setInterval(() => {
+			this.liikutaMato();
+		}, (11 - this.nopeus) * 100);
 	}
-	timer = setInterval(() => {
-		liikutaMato();
-	}, (11 - nopeus) * 100);
-}
 
+
+	pelaa() {
+		this.alusta();
+		this.luoKentta();
+		this.muutaNopeus();
+	}
+};
+
+// END ENGINE
 //========================================================
-// GUI
+// START GUI
 
 import * as THREE from './node_modules/three/build/three.module';
 import { OrbitControls } from './node_modules/three/examples/jsm/controls/OrbitControls'
@@ -475,7 +482,8 @@ const container = document.getElementById("game-frame");
 const geometry = new THREE.BoxGeometry(0.8, 0.8, 0.8);
 const materialMato = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true });
 const materialOmppu = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
-const amount = 10; // map size amount*amount*amount
+const gameEngine = new SnakeEngine();
+const amount = gameEngine.tiles; // map size amount*amount*amount
 
 let renderer, camera;
 let guiKentta = [];
@@ -483,12 +491,14 @@ let guiSeinat = [];
 let colorWall = 0x000033;
 let colorShadow = 0x552200;
 let cameraReady = false;
+let stars = [];
 
 init();
 
 function init() {
 	container.innerWidth = window.innerWidth
-	container.innerHeight = window.innerHeight - 200;
+	container.innerHeight = window.innerHeight
+	if (document.getElementById("a").style.visibility == "vivible") container.innerHeight = window.innerHeight - 200;
 
 	camera = new THREE.PerspectiveCamera(
 		70,
@@ -498,7 +508,6 @@ function init() {
 	camera.position.x = 0;
 	camera.position.y = 0;
 	camera.position.z = 32 * amount;
-	camera.lookAt(lastX, lastY, lastZ);
 
 	renderer = new THREE.WebGLRenderer({ antialias: true });
 	renderer.setPixelRatio(window.devicePixelRatio);
@@ -508,25 +517,42 @@ function init() {
 	//new OrbitControls(camera, renderer.domElement);
 
 	window.addEventListener('resize', onWindowResize);
-	const aButton = document.getElementById("a");
-	const sButton = document.getElementById("s");
-	const dButton = document.getElementById("d");
-	const wButton = document.getElementById("w");
-	const qButton = document.getElementById("q");
-	const eButton = document.getElementById("e");
-	aButton.onclick = function () { ohjaa("a"); }
-	sButton.onclick = function () { ohjaa("s"); }
-	dButton.onclick = function () { ohjaa("d"); }
-	wButton.onclick = function () { ohjaa("w"); }
-	qButton.onclick = function () { ohjaa("q"); }
-	eButton.onclick = function () { ohjaa("e"); }
 
+	document.getElementById("a").onclick = function () { gameEngine.ohjaa("a"); }
+	document.getElementById("s").onclick = function () { gameEngine.ohjaa("s"); }
+	document.getElementById("d").onclick = function () { gameEngine.ohjaa("d"); }
+	document.getElementById("w").onclick = function () { gameEngine.ohjaa("w"); }
+	document.getElementById("q").onclick = function () { gameEngine.ohjaa("q"); }
+	document.getElementById("e").onclick = function () { gameEngine.ohjaa("e"); }
+
+	document.addEventListener('keydown', (event) => { gameEngine.ohjaa(event.key) });
+	document.getElementById("btn").onclick = function () { changeControls(); onWindowResize(); }
 	makeWalls();
 	animate();
 	createStars();
-	pelaa();
+	gameEngine.pelaa();
 }
 
+let count = 0;
+function changeControls() {
+	if (count % 2 == 0) {
+		document.getElementById("a").style.visibility = "visible";
+		document.getElementById("s").style.visibility = "visible";
+		document.getElementById("d").style.visibility = "visible";
+		document.getElementById("w").style.visibility = "visible";
+		document.getElementById("q").style.visibility = "visible";
+		document.getElementById("e").style.visibility = "visible";
+		count++;
+		return;
+	}
+	document.getElementById("a").style.visibility = "hidden";
+	document.getElementById("s").style.visibility = "hidden";
+	document.getElementById("d").style.visibility = "hidden";
+	document.getElementById("w").style.visibility = "hidden";
+	document.getElementById("q").style.visibility = "hidden";
+	document.getElementById("e").style.visibility = "hidden";
+	count++;
+}
 
 function animate() {
 	requestAnimationFrame(animate);
@@ -605,19 +631,19 @@ function draw() {
 
 	guiKentta = [];
 
-	for (let i = 0; i < visMato.length; i++) {
+	for (let i = 0; i < gameEngine.visMato.length; i++) {
 		let meshMato = new THREE.Mesh(geometry, materialMato);
-		meshMato.position.x = visMato[i][0] - amount / 2;
-		meshMato.position.y = visMato[i][1] - amount / 2;
-		meshMato.position.z = visMato[i][2] - amount / 2;
+		meshMato.position.x = gameEngine.visMato[i][0] - amount / 2;
+		meshMato.position.y = gameEngine.visMato[i][1] - amount / 2;
+		meshMato.position.z = gameEngine.visMato[i][2] - amount / 2;
 		guiKentta[i] = meshMato;
 	}
 
 	let meshOmppu = new THREE.Mesh(geometry, materialOmppu);
-	meshOmppu.position.x = omppu[0] - amount / 2;
-	meshOmppu.position.y = omppu[1] - amount / 2;
-	meshOmppu.position.z = omppu[2] - amount / 2;
-	guiKentta[visMato.length] = meshOmppu;
+	meshOmppu.position.x = gameEngine.omppu[0] - amount / 2;
+	meshOmppu.position.y = gameEngine.omppu[1] - amount / 2;
+	meshOmppu.position.z = gameEngine.omppu[2] - amount / 2;
+	guiKentta[gameEngine.visMato.length] = meshOmppu;
 
 	for (let j = 0; j < guiKentta.length; j++) {
 		scene.add(guiKentta[j]);
@@ -628,38 +654,38 @@ function draw() {
 
 
 function updatePoints() {
-	document.getElementById("points").innerHTML = pisteet;
+	document.getElementById("points").innerHTML = gameEngine.pisteet;
 }
 
 
 function lisaaApuviivat() {
-	if (pisteet == 128) {
+	if (gameEngine.pisteet == 128) {
 		colorWall = 0x111111;
 		colorShadow = 0x222222;
 	}
-	if (pisteet == 64) {
+	if (gameEngine.pisteet == 64) {
 		colorWall = 0x200202;
 		colorShadow = 0x010101;
 	}
-	if (pisteet == 32) {
+	if (gameEngine.pisteet == 32) {
 		colorWall = 0x220022;
 		colorShadow = 0x223000;
 	}
-	if (pisteet == 16) {
+	if (gameEngine.pisteet == 16) {
 		colorWall = 0x000033;
 		colorShadow = 0x552200;
 	}
-	if (pisteet == 8) {
+	if (gameEngine.pisteet == 8) {
 		colorWall = 0x050505;
 		colorShadow = 0x0202ff;
 	}
-	if (pisteet < 8) {
+	if (gameEngine.pisteet < 8) {
 		colorWall = 0x000099;
 		colorShadow = 0x000033;
 	}
 
 	for (let i = 0; i < guiSeinat.length; i++) {
-		if (lastX == guiSeinat[i].position.x + amount / 2 || lastY == guiSeinat[i].position.y + amount / 2 || lastZ == guiSeinat[i].position.z + amount / 2) {
+		if (gameEngine.lastX == guiSeinat[i].position.x + amount / 2 || gameEngine.lastY == guiSeinat[i].position.y + amount / 2 || gameEngine.lastZ == guiSeinat[i].position.z + amount / 2) {
 			guiSeinat[i].material.color.setHex(colorShadow);
 		} else {
 			guiSeinat[i].material.color.setHex(colorWall);
@@ -670,7 +696,8 @@ function lisaaApuviivat() {
 
 function onWindowResize() {
 	container.innerWidth = window.innerWidth
-	container.innerHeight = window.innerHeight - 200;
+	container.innerHeight = window.innerHeight
+	if (document.getElementById("a").style.visibility == "visible") container.innerHeight = window.innerHeight - 200;
 	camera.aspect = container.innerWidth / container.innerHeight;
 	camera.updateProjectionMatrix();
 	renderer.setSize(container.innerWidth, container.innerHeight);
@@ -692,7 +719,7 @@ function createStars() {
 }
 
 function moveStars() {
-	let speed = nopeus;
+	let speed = gameEngine.nopeus;
 	for (let i = 0; i < stars.length; i++) {
 		stars[i].position.z += speed / 64 * speed;
 		if (stars[i].position.z >= 256) stars[i].position.z = -256;
