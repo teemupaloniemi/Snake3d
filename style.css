@@ -6,10 +6,17 @@ body {
 .container {
   display: grid;
   grid-template-areas:
-    "pisteet ohjeet ohjaimet"
+    "pisteet lb ohjaimet"
     "peli peli peli"
     ". mobile .";
   justify-items: stretch;
+}
+
+.lb {
+  place-self: center;
+  grid-area: lb;
+  color: rgb(0, 255, 0);
+  border: 1px solid rgb(0, 255, 0);
 }
 
 .mobileControls {
@@ -87,14 +94,6 @@ button {
   place-self: center;
   grid-area: pisteet;
   font-size: 4em;
-  color: rgb(0, 255, 0);
-}
-
-
-#ohjeet {
-  place-self: center;
-  grid-area: ohjeet;
-  font-size: 2em;
   color: rgb(0, 255, 0);
 }
 

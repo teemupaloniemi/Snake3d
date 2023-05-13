@@ -1,3 +1,5 @@
+
+
 // START ENGINE
 class SnakeEngine {
 	constructor() {
@@ -144,6 +146,7 @@ class SnakeEngine {
 		this.lastY += this.vel[1];
 		this.lastZ += this.vel[2];
 		if (this.onLaitonSiirto()) {
+			updateLeaderboard();
 			this.pisteet = 0;
 			this.nopeus = 5;
 			this.nopeusMuuttunut = true;
@@ -154,7 +157,7 @@ class SnakeEngine {
 		if (this.syoOmpun(this.lastX, this.lastY, this.lastZ)) {
 			this.pisteet += 1;
 			updatePoints(); //update in GUI 
-			if (this.pisteet > 0 && this.pisteet % 10 == 0) {
+			if (this.pisteet > 0 && this.pisteet % 8 == 0) {
 				if (this.nopeus < 10) {
 					this.nopeus++;
 					this.nopeusMuuttunut = true;
@@ -168,6 +171,7 @@ class SnakeEngine {
 		this.visMato.push([this.lastX, this.lastY, this.lastZ]);
 		this.piirraMato();
 	}
+
 
 
 	//connect eventListener to this
@@ -492,6 +496,7 @@ let colorWall = 0x000033;
 let colorShadow = 0x552200;
 let cameraReady = false;
 let stars = [];
+let name = "unknown";
 
 init();
 
@@ -507,7 +512,7 @@ function init() {
 		1000);
 	camera.position.x = 0;
 	camera.position.y = 0;
-	camera.position.z = 32 * amount;
+	camera.position.z = 8 * amount;
 
 	renderer = new THREE.WebGLRenderer({ antialias: true });
 	renderer.setPixelRatio(window.devicePixelRatio);
@@ -531,6 +536,13 @@ function init() {
 	animate();
 	createStars();
 	gameEngine.pelaa();
+	getName();
+}
+function getName() {
+	let person = prompt("Please enter your name", "unknown");
+	if (person != null) {
+		name = person.substring(0, 10);
+	}
 }
 
 let count = 0;
@@ -554,17 +566,20 @@ function changeControls() {
 	count++;
 }
 
+
 function animate() {
+
 	requestAnimationFrame(animate);
 	moveStars();
 	if (!cameraReady) {
 		if (camera.position.z >= 1.6 * amount) {
-			camera.position.z -= 0.8;
+			camera.position.z -= 0.5;
 		} else {
 			new OrbitControls(camera, renderer.domElement);
 			cameraReady = true;
 		}
 	}
+
 	renderer.render(scene, camera);
 }
 
@@ -622,7 +637,6 @@ function makeWalls() {
 		}
 	}
 }
-
 
 function draw() {
 	for (let k = 0; k < guiKentta.length; k++) {
@@ -705,7 +719,7 @@ function onWindowResize() {
 
 
 function createStars() {
-	for (let i = 0; i < 2048; i++) {
+	for (let i = 0; i < 1024; i++) {
 		let x = Math.random() * 512 - 256;
 		let y = Math.random() * 512 - 256;
 		let z = Math.random() * 512 - 256;
@@ -725,3 +739,30 @@ function moveStars() {
 		if (stars[i].position.z >= 256) stars[i].position.z = -256;
 	}
 }
+
+function updateLeaderboard() {
+	let leaderboard = JSON.parse(localStorage.getItem("leaderboard")) || [];
+	leaderboard.push({ name: name, score: gameEngine.pisteet });
+	leaderboard.sort((a, b) => b.score - a.score);
+	localStorage.setItem("leaderboard", JSON.stringify(leaderboard));
+	displayLeaderboard();
+}
+
+function displayLeaderboard() {
+	let leaderboard = JSON.parse(localStorage.getItem("leaderboard")) || [];
+	let table = document.getElementById("leaderboard-table");
+	table.innerHTML = "";
+	for (let i = 0; i < Math.min(3, leaderboard.length); i++) {
+		let row = table.insertRow(i);
+		let nameCell = row.insertCell(0);
+		let scoreCell = row.insertCell(1);
+		nameCell.innerHTML = leaderboard[i].name;
+		scoreCell.innerHTML = leaderboard[i].score;
+	}
+}
+
+window.onload = function () {
+	displayLeaderboard();
+	updateLeaderboard();
+};
+
