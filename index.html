@@ -9,32 +9,24 @@
 </head>
 
 <body>
-  <div class="container">
-    <div id="ohjeet">W-A-S-D-Q-E: Static</div>
-    <button id="btn" onclick="changeControls();">controls</button>
-    <div id="points">0</div>
-    <div id="scoreboard"></div>
+  <div id="container">
+    <div id="header">
+      <h1 id="points">0</h1>
+      <div id="lb">
+        <table id="leaderboard-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Score</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
     <div id="game-frame"></div>
     <script type="module" src="matopeli.js"></script>
-    <div class="mobileControls">
-      <button id="a">A</button>
-      <button id="s">S</button>
-      <button id="d">D</button>
-      <button id="w">W</button>
-      <button id="q">Q</button>
-      <button id="e">E</button>
-    </div>
-    <div class="lb">
-      <table id="leaderboard-table">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Score</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
   </div>
 </body>
 
