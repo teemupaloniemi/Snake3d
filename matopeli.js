@@ -21,10 +21,15 @@ class SnakeEngine {
     this.timer;
     this.nopeusMuuttunut = false;
 
+    // Muisti
+    this.uusintaMenossa = false;
+    this.mutkat = [];
+    this.omput = [];
+
     // animaatio
     this.visMato = [];
     this.vel = [1, 0, 0];
-    this.omppu = [0, 0, 0];
+    this.omppu = [];
   }
 
   /*
@@ -81,8 +86,14 @@ class SnakeEngine {
    * Alustetaan mato ja kentta
    */
   alusta() {
+    this.pisteet = 0;
+    this.nopeus = 5;
+    this.nopeusMuuttunut = true;
     this.paikkaMato = 0;
     this.visMato = [];
+    this.mutkat = [];
+    this.omput = [];
+    this.omppu = [0,1,3];
     this.lastMove = 0;
     this.lastHorizontal = [-1, 0];
     this.lastVertical = -1;
@@ -142,16 +153,46 @@ class SnakeEngine {
    * Liikutetaan matoa velocity vektorin osoittamaan suuntaan
    */
   liikutaMato() {
+    if (this.uusintaMenossa) {
+      console.log(this.visMato[this.paikkaMato-1], this.mutkat[0], this.mutkat[1], this.mutkat);
+      if (this.visMato[this.paikkaMato-1][0] === this.mutkat[0][0]
+          && this.visMato[this.paikkaMato-1][1] === this.mutkat[0][1]
+          && this.visMato[this.paikkaMato-1][2] === this.mutkat[0][2]
+          && this.mutkat.length > 1) {
+        const diffx = this.mutkat[1][0] - this.mutkat[0][0];
+        const diffy = this.mutkat[1][1] - this.mutkat[0][1];
+        const diffz = this.mutkat[1][2] - this.mutkat[0][2];
+        this.vel[0] = diffx === 0 ? 0 : (diffx > 0 ? 1 : -1);
+        this.vel[1] = diffy === 0 ? 0 : (diffy > 0 ? 1 : -1);
+        this.vel[2] = diffz === 0 ? 0 : (diffz > 0 ? 1 : -1);
+        console.log(this.vel);
+        this.mutkat.shift();
+      }
+    }
     this.lastX += this.vel[0];
     this.lastY += this.vel[1];
     this.lastZ += this.vel[2];
     if (this.onLaitonSiirto()) {
-      updateLeaderboard();
-      this.pisteet = 0;
-      this.nopeus = 5;
-      this.nopeusMuuttunut = true;
-      this.muutaNopeus();
-      this.alusta();
+
+      /// Lopeta uusinta jos sellainen on menossa.
+      if (this.uusintaMenossa) {
+        this.mutkat = [];
+        this.omput = [];
+        this.uusintaMenossa = false;
+      }
+
+      /// Päivitä viimeisimmät pisteet.
+      updatePoints()
+
+      /// Näytä uusinta.
+      this.uusinta(this.mutkat, this.omput);
+
+      /// Päivitä UI.
+      /// document.getElementById("submit").click();
+
+      /// Alusta uutta peliä varten.
+      /// this.alusta();
+      /// this.muutaNopeus();
       return;
     }
     if (this.syoOmpun(this.lastX, this.lastY, this.lastZ)) {
@@ -169,9 +210,11 @@ class SnakeEngine {
       this.visMato.splice(0, 1);
     }
     this.visMato.push([this.lastX, this.lastY, this.lastZ]);
+    if (!this.uusintaMenossa) {
+      this.mutkat.push([this.lastX, this.lastY, this.lastZ]);
+    }
     this.piirraMato();
   }
-
 
 
   //connect eventListener to this
@@ -213,19 +256,27 @@ class SnakeEngine {
    * Luodaan omena random xyz koordinaattiin kent�ll�
    */
   luoOmppu() {
-    let omppuX = Math.floor(Math.random() * this.tiles);
-    let omppuY = Math.floor(Math.random() * this.tiles);
-    let omppuZ = Math.floor(Math.random() * this.tiles);
+    if (this.uusintaMenossa) {
+      this.omppu = this.omput[0];
+      this.omput.shift();
+    } else {
+      let omppuX = Math.floor(Math.random() * this.tiles);
+      let omppuY = Math.floor(Math.random() * this.tiles);
+      let omppuZ = Math.floor(Math.random() * this.tiles);
 
-    for (let i = 0; i < this.visMato.length; i++) {
-      if (this.visMato[i][0] == omppuX && this.visMato[i][1] == omppuY && this.visMato[i][2] == omppuZ) {
-        this.luoOmppu();
-        return;
+      for (let i = 0; i < this.visMato.length; i++) {
+        if (this.visMato[i][0] == omppuX && this.visMato[i][1] == omppuY && this.visMato[i][2] == omppuZ) {
+          this.luoOmppu();
+          return;
+        }
       }
+
+      this.omppu[0] = omppuX;
+      this.omppu[1] = omppuY;
+      this.omppu[2] = omppuZ;
+
+      this.omput.push(this.omppu);
     }
-    this.omppu[0] = omppuX;
-    this.omppu[1] = omppuY;
-    this.omppu[2] = omppuZ;
   }
 
 
@@ -261,8 +312,8 @@ class SnakeEngine {
 
 
   /*
-  * Changiing the speed of the worm
-  */
+   * Changing the speed of the worm
+   */
   muutaNopeus() {
     if (this.nopeusMuuttunut) {
       clearInterval(this.timer);
@@ -271,6 +322,19 @@ class SnakeEngine {
     this.timer = setInterval(() => {
       this.liikutaMato();
     }, (11 - this.nopeus) * 100);
+  }
+
+
+  /*
+   * Aja tallennettu peli.
+   */
+  uusinta(mutkat, omput) {
+    alert("Aloitetaan uusinta!");
+    this.alusta();
+    this.uusintaMenossa = true;
+    this.omput = omput;
+    this.mutkat = mutkat;
+    this.muutaNopeus();
   }
 
 
@@ -304,9 +368,7 @@ let cameraReady = false;
 let stars = [];
 let name = "unknown";
 
-init();
-
-function init() {
+function initialize3D() {
   container.innerWidth = window.innerWidth;
   container.innerHeight = window.innerHeight;
   camera = new THREE.PerspectiveCamera(
@@ -325,7 +387,15 @@ function init() {
 
   window.addEventListener('resize', onWindowResize);
 
-  document.addEventListener('keydown', (event) => { gameEngine.ohjaa(event.key) });
+  document.addEventListener('keydown', (event) => {
+    for (const letter of ["Q", "W", "E", "A", "S", "D"]) {
+      if (event.key.toUpperCase() === letter)
+        document.getElementById(letter).style.color = "rgb(255,0,0)";
+      else
+        document.getElementById(letter).style.color = "rgb(0,255,0)";
+    }
+    gameEngine.ohjaa(event.key);
+  });
 
   makeWalls();
   animate();
@@ -334,10 +404,36 @@ function init() {
   getName();
 }
 
+// Taken from https://stackoverflow.com/questions/9628879/javascript-regex-username-validation
+function isUserNameValid(username) {
+  /*
+    Usernames can only have:
+    - Letters (A-Za-z)
+    - Numbers (0-9)
+    - Dots (.)
+    - Underscores (_)
+  */
+  const res = /^[A-Za-z0-9_\.]+$/.exec(username);
+  const valid = !!res;
+  return valid;
+}
+
 function getName() {
-  let person = prompt("Please enter your name", "unknown");
-  if (person != null) {
-    name = person.substring(0, 10);
+  let tmp = localStorage.getItem("username");
+  if (tmp === null) {
+    tmp = prompt("Username", "unknown");
+    if (tmp != null && isUserNameValid(tmp)) {
+      name = tmp;
+      document.getElementById("name").innerHTML = tmp;
+      document.getElementById("name-post").value = tmp;
+      localStorage.setItem("username", tmp);
+    } else {
+      alert("Käyttäjänimi ei sallittu! Säännöt:\n\n  - Kirjaimet (a-zA-z)\n  - Numerot (0-9)\n  - Piste (.)\n  - Alaviiva (_)");
+    }
+  } else {
+      name = tmp;
+      document.getElementById("name").innerHTML = tmp;
+      document.getElementById("name-post").value = tmp;
   }
 }
 
@@ -442,7 +538,7 @@ function draw() {
 
 
 function updatePoints() {
-  document.getElementById("points").innerHTML = gameEngine.pisteet;
+  document.getElementById("points").value = gameEngine.pisteet;
 }
 
 
@@ -513,28 +609,61 @@ function moveStars() {
   }
 }
 
-function updateLeaderboard() {
-  let leaderboard = JSON.parse(localStorage.getItem("leaderboard")) || [];
-  leaderboard.push({ name: name, score: gameEngine.pisteet });
-  leaderboard.sort((a, b) => b.score - a.score);
-  localStorage.setItem("leaderboard", JSON.stringify(leaderboard));
-  displayLeaderboard();
-}
-
 function displayLeaderboard() {
-  let leaderboard = JSON.parse(localStorage.getItem("leaderboard")) || [];
-  let table = document.getElementById("leaderboard-table");
-  table.innerHTML = "";
-  for (let i = 0; i < Math.min(3, leaderboard.length); i++) {
-    let row = table.insertRow(i);
-    let nameCell = row.insertCell(0);
-    let scoreCell = row.insertCell(1);
-    nameCell.innerHTML = leaderboard[i].name;
-    scoreCell.innerHTML = leaderboard[i].score;
-  }
+    fetch("tulokset.txt")
+        .then(response => response.text())
+        .then(fileContent => {
+            const lines = fileContent.split("\n");
+            const tbody = document.getElementById("leaderboard-table");
+            tbody.innerHTML = '';
+            tbody.innerHTML += "<caption>Top 10</caption>"
+
+            lines.sort((a, b) => {
+                const scoreA = parseInt(a.split(" | ")[1]);
+                const scoreB = parseInt(b.split(" | ")[1]);
+                return scoreB - scoreA;
+            });
+
+            lines.filter((a) => { return a.length > 0 }).slice(0,11).forEach(line => {
+                const [name, score] = line.split(" | ").map(s => s.trim());
+                if (name && score) {
+                    tbody.innerHTML += `<tr><td>${name}</td><td>${score}</td></tr>`;
+                }
+            });
+        })
+        .catch(error => console.error("Error fetching file:", error));
 }
 
-window.onload = function () {
+function updateUsername() {
+  localStorage.removeItem("username");
+  getName();
+}
+
+function initializePage() {
+
+  // Initialize the 3D graphics.
+  initialize3D();
+
+  // Bind username update to button.
+  document.getElementById("change-username-btn").onclick = updateUsername;
+
+  // Bind update method to form.
+  let form = document.getElementById("points-form");
+  function handleForm(event) {
+    event.preventDefault();
+    let formData = new FormData(form);
+    if (formData.get("points") !== "0") {
+      fetch('submit.php', {
+          method: 'POST',
+          body: formData,
+      });
+    }
+  }
+  form.addEventListener('submit', handleForm);
+
+  // Read and update latest leaderboard.
   displayLeaderboard();
-  updateLeaderboard();
 };
+
+
+window.onload = initializePage();
