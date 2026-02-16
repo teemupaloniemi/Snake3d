@@ -1,18 +1,14 @@
-
-
 // START ENGINE
 class SnakeEngine {
   constructor() {
     // kentta
-    this.tiles = 10;
+    this.tiles = 12;
     this.alkiot = [];
     this.paikkaKentta = 0;
     this.paikkaMato = 0;
 
     // ohjaus
     this.lastMove = 0;
-    this.lastHorizontal = [-1, 0];
-    this.lastVertical = -1;
     this.lastX = 0;
     this.lastY = 0;
     this.lastZ = 0;
@@ -95,8 +91,6 @@ class SnakeEngine {
     this.omput = [];
     this.omppu = [0,1,3];
     this.lastMove = 0;
-    this.lastHorizontal = [-1, 0];
-    this.lastVertical = -1;
     const puolivali = this.tiles / 2;
     this.setVelocity(1, 0, 0);
     this.matoLisaaPalikka(0, puolivali, puolivali);
@@ -154,18 +148,16 @@ class SnakeEngine {
    */
   liikutaMato() {
     if (this.uusintaMenossa) {
-      console.log(this.visMato[this.paikkaMato-1], this.mutkat[0], this.mutkat[1], this.mutkat);
-      if (this.visMato[this.paikkaMato-1][0] === this.mutkat[0][0]
-          && this.visMato[this.paikkaMato-1][1] === this.mutkat[0][1]
-          && this.visMato[this.paikkaMato-1][2] === this.mutkat[0][2]
-          && this.mutkat.length > 1) {
+      if (this.mutkat.length > 1
+          && this.visMato[this.visMato.length-1][0] === this.mutkat[0][0]
+          && this.visMato[this.visMato.length-1][1] === this.mutkat[0][1]
+          && this.visMato[this.visMato.length-1][2] === this.mutkat[0][2]) {
         const diffx = this.mutkat[1][0] - this.mutkat[0][0];
         const diffy = this.mutkat[1][1] - this.mutkat[0][1];
         const diffz = this.mutkat[1][2] - this.mutkat[0][2];
         this.vel[0] = diffx === 0 ? 0 : (diffx > 0 ? 1 : -1);
         this.vel[1] = diffy === 0 ? 0 : (diffy > 0 ? 1 : -1);
         this.vel[2] = diffz === 0 ? 0 : (diffz > 0 ? 1 : -1);
-        console.log(this.vel);
         this.mutkat.shift();
       }
     }
@@ -174,25 +166,32 @@ class SnakeEngine {
     this.lastZ += this.vel[2];
     if (this.onLaitonSiirto()) {
 
-      /// Lopeta uusinta jos sellainen on menossa.
-      if (this.uusintaMenossa) {
-        this.mutkat = [];
-        this.omput = [];
-        this.uusintaMenossa = false;
-      }
-
       /// Päivitä viimeisimmät pisteet.
       updatePoints()
 
-      /// Näytä uusinta.
-      this.uusinta(this.mutkat, this.omput);
-
       /// Päivitä UI.
-      /// document.getElementById("submit").click();
+      if (!this.uusintaMenossa) {
+        document.getElementById("turns-post").value = JSON.stringify(this.mutkat);
+        document.getElementById("apples-post").value = JSON.stringify(this.omput);
+        document.getElementById("submit").click();
+      }
 
-      /// Alusta uutta peliä varten.
-      /// this.alusta();
-      /// this.muutaNopeus();
+      if (!this.uusintaMenossa && confirm("Katso uusinta?")) {
+        piilotaOhjaimet();
+        this.uusintaMenossa = true;
+        this.uusinta(this.mutkat, this.omput);
+      } else {
+        naytaOhjaimet();
+        if (this.uusintaMenossa) {
+          alert("Uusinta loppui, uusi peli alkaa!")
+        }
+        this.uusintaMenossa = false;
+        this.mutkat = [];
+        this.omput = [];
+        this.alusta();
+        this.muutaNopeus();
+      }
+
       return;
     }
     if (this.syoOmpun(this.lastX, this.lastY, this.lastZ)) {
@@ -205,7 +204,12 @@ class SnakeEngine {
           this.muutaNopeus();
         }
       }
-      this.luoOmppu();
+      if (this.uusintaMenossa) {
+        this.omppu = this.omput[0];
+        this.omput.shift();
+      } else {
+        this.luoOmppu();
+      }
     } else {
       this.visMato.splice(0, 1);
     }
@@ -220,33 +224,35 @@ class SnakeEngine {
   //connect eventListener to this
   //document.addEventListener('keydown', (event) => { this.ohjaa(event.key) });
   ohjaa(key) {
-    // Vasen
-    if (this.lastMove != "d" && key == "a") {
-      this.lastMove = "a";
-      this.setVelocity(-1, 0, 0);
-    }
-    // Oikee
-    else if (this.lastMove != "a" && key == "d") {
-      this.lastMove = "d";
-      this.setVelocity(1, 0, 0);
-    }
-    // Ylos
-    else if (this.lastMove != "w" && key == "s") {
-      this.lastMove = "s";
-      this.setVelocity(0, -1, 0);
-    }
-    // Alas
-    else if (this.lastMove != "s" && key == "w") {
-      this.lastMove = "w";
-      this.setVelocity(0, 1, 0);
-    }
-    else if (this.lastMove != "q" && key == "e") {
-      this.lastMove = "e";
-      this.setVelocity(0, 0, 1);
-    }
-    else if (this.lastMove != "e" && key == "q") {
-      this.lastMove = "q";
-      this.setVelocity(0, 0, -1);
+    if (!this.uusintaMenossa) {
+      // Vasen
+      if (this.lastMove != "d" && key == "a") {
+        this.lastMove = "a";
+        this.setVelocity(-1, 0, 0);
+      }
+      // Oikee
+      else if (this.lastMove != "a" && key == "d") {
+        this.lastMove = "d";
+        this.setVelocity(1, 0, 0);
+      }
+      // Ylos
+      else if (this.lastMove != "w" && key == "s") {
+        this.lastMove = "s";
+        this.setVelocity(0, -1, 0);
+      }
+      // Alas
+      else if (this.lastMove != "s" && key == "w") {
+        this.lastMove = "w";
+        this.setVelocity(0, 1, 0);
+      }
+      else if (this.lastMove != "q" && key == "e") {
+        this.lastMove = "e";
+        this.setVelocity(0, 0, 1);
+      }
+      else if (this.lastMove != "e" && key == "q") {
+        this.lastMove = "q";
+        this.setVelocity(0, 0, -1);
+      }
     }
     this.liikutaMato();
   }
@@ -277,6 +283,12 @@ class SnakeEngine {
 
       this.omput.push(this.omppu);
     }
+
+    this.omppu[0] = omppuX;
+    this.omppu[1] = omppuY;
+    this.omppu[2] = omppuZ;
+
+    this.omput.push([omppuX, omppuY, omppuZ]);
   }
 
 
@@ -329,9 +341,7 @@ class SnakeEngine {
    * Aja tallennettu peli.
    */
   uusinta(mutkat, omput) {
-    alert("Aloitetaan uusinta!");
     this.alusta();
-    this.uusintaMenossa = true;
     this.omput = omput;
     this.mutkat = mutkat;
     this.muutaNopeus();
@@ -625,9 +635,32 @@ function displayLeaderboard() {
             });
 
             lines.filter((a) => { return a.length > 0 }).slice(0,11).forEach(line => {
-                const [name, score] = line.split(" | ").map(s => s.trim());
+                const [name, score, turns, apples] = line.split(" | ").map(s => s.trim());
                 if (name && score) {
-                    tbody.innerHTML += `<tr><td>${name}</td><td>${score}</td></tr>`;
+
+                    let tr = document.createElement('tr');
+                    let nameCell = document.createElement('td');
+                    let scoreCell = document.createElement('td');
+                    let replayCell = document.createElement('td');
+                    let replayBtn = document.createElement('button');
+
+                    const turnsArray = JSON.parse(turns);
+                    const applesArray = JSON.parse(apples);
+
+                    nameCell.innerHTML = name;
+                    scoreCell.innerHTML = score;
+                    if (turnsArray.length > 0) {
+                      replayBtn.onclick = function() { replay(JSON.parse(turns), JSON.parse(apples)) };
+                      replayBtn.innerHTML = "katso";
+                      replayCell.appendChild(replayBtn);
+                    } else {
+                      replayCell.innerHTML = "ei uusintaa";
+                    }
+
+                    tr.appendChild(nameCell);
+                    tr.appendChild(scoreCell);
+                    tr.appendChild(replayCell);
+                    tbody.appendChild(tr);
                 }
             });
         })
@@ -637,6 +670,24 @@ function displayLeaderboard() {
 function updateUsername() {
   localStorage.removeItem("username");
   getName();
+}
+
+function piilotaOhjaimet() {
+  document.getElementById("header").style.display = "none";
+}
+
+function naytaOhjaimet() {
+  document.getElementById("header").style.display = "grid";
+}
+
+function replay(mutkat, omput) {
+  if (mutkat.length > 0 && omput.length > 0) {
+    piilotaOhjaimet();
+    gameEngine.uusintaMenossa = true;
+    gameEngine.uusinta(mutkat, omput);
+  } else {
+    alert("Uusintaa ei löydy!");
+  }
 }
 
 function initializePage() {
@@ -664,6 +715,5 @@ function initializePage() {
   // Read and update latest leaderboard.
   displayLeaderboard();
 };
-
 
 window.onload = initializePage();
