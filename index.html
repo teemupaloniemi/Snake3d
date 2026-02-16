@@ -4,27 +4,38 @@
 <head>
   <link rel="stylesheet" href="style.css">
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+  <meta name="viewport" content="width=device-width">
   <title>Matopeli</title>
 </head>
 
 <body>
   <div id="container">
     <div id="header">
-      <h1 id="points">0</h1>
-      <div id="lb">
-        <table id="leaderboard-table">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Score</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
+      <table id="leaderboard-table">
+      </table>
+      <div id="points-form-container">
+        <form id="points-form" method="post">
+          <input name="name" id="name-post" value="unknown" hidden>
+          <input name="turns" id="turns-post" value="" hidden>
+          <input name="apples" id="apples-post" value="" hidden>
+          <label><span id=name>unknown</span><button id="change-username-btn"><span>[ vaihda ]:</span></button></label><input readonly name="points" value=0 id="points">
+          <button name="submit" type="submit" id="submit" value="submit" hidden></button>
+        </form>
       </div>
+      <table id="info">
+        <caption>Ohjaus</caption>
+        <tr>
+          <td id="Q">Q kauemmas</td>
+          <td id="W">W ylös</td>
+          <td id="E">E lähemmäs</td>
+        </tr>
+        <tr>
+          <td id="A">A vasen</td>
+          <td id="S">S alas</td>
+          <td id="D">D oikea</td>
+        </tr>
+      </table>
     </div>
-
     <div id="game-frame"></div>
     <script type="module" src="matopeli.js"></script>
   </div>

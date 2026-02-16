@@ -1,18 +1,14 @@
-
-
 // START ENGINE
 class SnakeEngine {
   constructor() {
     // kentta
-    this.tiles = 10;
+    this.tiles = 12;
     this.alkiot = [];
     this.paikkaKentta = 0;
     this.paikkaMato = 0;
 
     // ohjaus
     this.lastMove = 0;
-    this.lastHorizontal = [-1, 0];
-    this.lastVertical = -1;
     this.lastX = 0;
     this.lastY = 0;
     this.lastZ = 0;
@@ -21,10 +17,15 @@ class SnakeEngine {
     this.timer;
     this.nopeusMuuttunut = false;
 
+    // Muisti
+    this.uusintaMenossa = false;
+    this.mutkat = [];
+    this.omput = [];
+
     // animaatio
     this.visMato = [];
     this.vel = [1, 0, 0];
-    this.omppu = [0, 0, 0];
+    this.omppu = [];
   }
 
   /*
@@ -81,11 +82,15 @@ class SnakeEngine {
    * Alustetaan mato ja kentta
    */
   alusta() {
+    this.pisteet = 0;
+    this.nopeus = 5;
+    this.nopeusMuuttunut = true;
     this.paikkaMato = 0;
     this.visMato = [];
+    this.mutkat = [];
+    this.omput = [];
+    this.omppu = [0,1,3];
     this.lastMove = 0;
-    this.lastHorizontal = [-1, 0];
-    this.lastVertical = -1;
     const puolivali = this.tiles / 2;
     this.setVelocity(1, 0, 0);
     this.matoLisaaPalikka(0, puolivali, puolivali);
@@ -142,16 +147,51 @@ class SnakeEngine {
    * Liikutetaan matoa velocity vektorin osoittamaan suuntaan
    */
   liikutaMato() {
+    if (this.uusintaMenossa) {
+      if (this.mutkat.length > 1
+          && this.visMato[this.visMato.length-1][0] === this.mutkat[0][0]
+          && this.visMato[this.visMato.length-1][1] === this.mutkat[0][1]
+          && this.visMato[this.visMato.length-1][2] === this.mutkat[0][2]) {
+        const diffx = this.mutkat[1][0] - this.mutkat[0][0];
+        const diffy = this.mutkat[1][1] - this.mutkat[0][1];
+        const diffz = this.mutkat[1][2] - this.mutkat[0][2];
+        this.vel[0] = diffx === 0 ? 0 : (diffx > 0 ? 1 : -1);
+        this.vel[1] = diffy === 0 ? 0 : (diffy > 0 ? 1 : -1);
+        this.vel[2] = diffz === 0 ? 0 : (diffz > 0 ? 1 : -1);
+        this.mutkat.shift();
+      }
+    }
     this.lastX += this.vel[0];
     this.lastY += this.vel[1];
     this.lastZ += this.vel[2];
     if (this.onLaitonSiirto()) {
-      updateLeaderboard();
-      this.pisteet = 0;
-      this.nopeus = 5;
-      this.nopeusMuuttunut = true;
-      this.muutaNopeus();
-      this.alusta();
+
+      /// Päivitä viimeisimmät pisteet.
+      updatePoints()
+
+      /// Päivitä UI.
+      if (!this.uusintaMenossa) {
+        document.getElementById("turns-post").value = JSON.stringify(this.mutkat);
+        document.getElementById("apples-post").value = JSON.stringify(this.omput);
+        document.getElementById("submit").click();
+      }
+
+      if (!this.uusintaMenossa && confirm("Katso uusinta?")) {
+        piilotaOhjaimet();
+        this.uusintaMenossa = true;
+        this.uusinta(this.mutkat, this.omput);
+      } else {
+        naytaOhjaimet();
+        if (this.uusintaMenossa) {
+          alert("Uusinta loppui, uusi peli alkaa!")
+        }
+        this.uusintaMenossa = false;
+        this.mutkat = [];
+        this.omput = [];
+        this.alusta();
+        this.muutaNopeus();
+      }
+
       return;
     }
     if (this.syoOmpun(this.lastX, this.lastY, this.lastZ)) {
@@ -164,46 +204,55 @@ class SnakeEngine {
           this.muutaNopeus();
         }
       }
-      this.luoOmppu();
+      if (this.uusintaMenossa) {
+        this.omppu = this.omput[0];
+        this.omput.shift();
+      } else {
+        this.luoOmppu();
+      }
     } else {
       this.visMato.splice(0, 1);
     }
     this.visMato.push([this.lastX, this.lastY, this.lastZ]);
+    if (!this.uusintaMenossa) {
+      this.mutkat.push([this.lastX, this.lastY, this.lastZ]);
+    }
     this.piirraMato();
   }
-
 
 
   //connect eventListener to this
   //document.addEventListener('keydown', (event) => { this.ohjaa(event.key) });
   ohjaa(key) {
-    // Vasen
-    if (this.lastMove != "d" && key == "a") {
-      this.lastMove = "a";
-      this.setVelocity(-1, 0, 0);
-    }
-    // Oikee
-    else if (this.lastMove != "a" && key == "d") {
-      this.lastMove = "d";
-      this.setVelocity(1, 0, 0);
-    }
-    // Ylos
-    else if (this.lastMove != "w" && key == "s") {
-      this.lastMove = "s";
-      this.setVelocity(0, -1, 0);
-    }
-    // Alas
-    else if (this.lastMove != "s" && key == "w") {
-      this.lastMove = "w";
-      this.setVelocity(0, 1, 0);
-    }
-    else if (this.lastMove != "q" && key == "e") {
-      this.lastMove = "e";
-      this.setVelocity(0, 0, 1);
-    }
-    else if (this.lastMove != "e" && key == "q") {
-      this.lastMove = "q";
-      this.setVelocity(0, 0, -1);
+    if (!this.uusintaMenossa) {
+      // Vasen
+      if (this.lastMove != "d" && key == "a") {
+        this.lastMove = "a";
+        this.setVelocity(-1, 0, 0);
+      }
+      // Oikee
+      else if (this.lastMove != "a" && key == "d") {
+        this.lastMove = "d";
+        this.setVelocity(1, 0, 0);
+      }
+      // Ylos
+      else if (this.lastMove != "w" && key == "s") {
+        this.lastMove = "s";
+        this.setVelocity(0, -1, 0);
+      }
+      // Alas
+      else if (this.lastMove != "s" && key == "w") {
+        this.lastMove = "w";
+        this.setVelocity(0, 1, 0);
+      }
+      else if (this.lastMove != "q" && key == "e") {
+        this.lastMove = "e";
+        this.setVelocity(0, 0, 1);
+      }
+      else if (this.lastMove != "e" && key == "q") {
+        this.lastMove = "q";
+        this.setVelocity(0, 0, -1);
+      }
     }
     this.liikutaMato();
   }
@@ -223,9 +272,12 @@ class SnakeEngine {
         return;
       }
     }
+
     this.omppu[0] = omppuX;
     this.omppu[1] = omppuY;
     this.omppu[2] = omppuZ;
+
+    this.omput.push([omppuX, omppuY, omppuZ]);
   }
 
 
@@ -261,8 +313,8 @@ class SnakeEngine {
 
 
   /*
-  * Changiing the speed of the worm
-  */
+   * Changing the speed of the worm
+   */
   muutaNopeus() {
     if (this.nopeusMuuttunut) {
       clearInterval(this.timer);
@@ -271,6 +323,17 @@ class SnakeEngine {
     this.timer = setInterval(() => {
       this.liikutaMato();
     }, (11 - this.nopeus) * 100);
+  }
+
+
+  /*
+   * Aja tallennettu peli.
+   */
+  uusinta(mutkat, omput) {
+    this.alusta();
+    this.omput = omput;
+    this.mutkat = mutkat;
+    this.muutaNopeus();
   }
 
 
@@ -304,9 +367,7 @@ let cameraReady = false;
 let stars = [];
 let name = "unknown";
 
-init();
-
-function init() {
+function initialize3D() {
   container.innerWidth = window.innerWidth;
   container.innerHeight = window.innerHeight;
   camera = new THREE.PerspectiveCamera(
@@ -325,7 +386,15 @@ function init() {
 
   window.addEventListener('resize', onWindowResize);
 
-  document.addEventListener('keydown', (event) => { gameEngine.ohjaa(event.key) });
+  document.addEventListener('keydown', (event) => {
+    for (const letter of ["Q", "W", "E", "A", "S", "D"]) {
+      if (event.key.toUpperCase() === letter)
+        document.getElementById(letter).style.color = "rgb(255,0,0)";
+      else
+        document.getElementById(letter).style.color = "rgb(0,255,0)";
+    }
+    gameEngine.ohjaa(event.key);
+  });
 
   makeWalls();
   animate();
@@ -334,10 +403,36 @@ function init() {
   getName();
 }
 
+// Taken from https://stackoverflow.com/questions/9628879/javascript-regex-username-validation
+function isUserNameValid(username) {
+  /*
+    Usernames can only have:
+    - Letters (A-Za-z)
+    - Numbers (0-9)
+    - Dots (.)
+    - Underscores (_)
+  */
+  const res = /^[A-Za-z0-9_\.]+$/.exec(username);
+  const valid = !!res;
+  return valid;
+}
+
 function getName() {
-  let person = prompt("Please enter your name", "unknown");
-  if (person != null) {
-    name = person.substring(0, 10);
+  let tmp = localStorage.getItem("username");
+  if (tmp === null) {
+    tmp = prompt("Username", "unknown");
+    if (tmp != null && isUserNameValid(tmp)) {
+      name = tmp;
+      document.getElementById("name").innerHTML = tmp;
+      document.getElementById("name-post").value = tmp;
+      localStorage.setItem("username", tmp);
+    } else {
+      alert("Käyttäjänimi ei sallittu! Säännöt:\n\n  - Kirjaimet (a-zA-z)\n  - Numerot (0-9)\n  - Piste (.)\n  - Alaviiva (_)");
+    }
+  } else {
+      name = tmp;
+      document.getElementById("name").innerHTML = tmp;
+      document.getElementById("name-post").value = tmp;
   }
 }
 
@@ -442,7 +537,7 @@ function draw() {
 
 
 function updatePoints() {
-  document.getElementById("points").innerHTML = gameEngine.pisteet;
+  document.getElementById("points").value = gameEngine.pisteet;
 }
 
 
@@ -513,28 +608,101 @@ function moveStars() {
   }
 }
 
-function updateLeaderboard() {
-  let leaderboard = JSON.parse(localStorage.getItem("leaderboard")) || [];
-  leaderboard.push({ name: name, score: gameEngine.pisteet });
-  leaderboard.sort((a, b) => b.score - a.score);
-  localStorage.setItem("leaderboard", JSON.stringify(leaderboard));
-  displayLeaderboard();
+function displayLeaderboard() {
+    fetch("tulokset.txt")
+        .then(response => response.text())
+        .then(fileContent => {
+            const lines = fileContent.split("\n");
+            const tbody = document.getElementById("leaderboard-table");
+            tbody.innerHTML = '';
+            tbody.innerHTML += "<caption>Top 10</caption>"
+
+            lines.sort((a, b) => {
+                const scoreA = parseInt(a.split(" | ")[1]);
+                const scoreB = parseInt(b.split(" | ")[1]);
+                return scoreB - scoreA;
+            });
+
+            lines.filter((a) => { return a.length > 0 }).slice(0,11).forEach(line => {
+                const [name, score, turns, apples] = line.split(" | ").map(s => s.trim());
+                if (name && score) {
+
+                    let tr = document.createElement('tr');
+                    let nameCell = document.createElement('td');
+                    let scoreCell = document.createElement('td');
+                    let replayCell = document.createElement('td');
+                    let replayBtn = document.createElement('button');
+
+                    const turnsArray = JSON.parse(turns);
+                    const applesArray = JSON.parse(apples);
+
+                    nameCell.innerHTML = name;
+                    scoreCell.innerHTML = score;
+                    if (turnsArray.length > 0) {
+                      replayBtn.onclick = function() { replay(JSON.parse(turns), JSON.parse(apples)) };
+                      replayBtn.innerHTML = "katso";
+                      replayCell.appendChild(replayBtn);
+                    } else {
+                      replayCell.innerHTML = "ei uusintaa";
+                    }
+
+                    tr.appendChild(nameCell);
+                    tr.appendChild(scoreCell);
+                    tr.appendChild(replayCell);
+                    tbody.appendChild(tr);
+                }
+            });
+        })
+        .catch(error => console.error("Error fetching file:", error));
 }
 
-function displayLeaderboard() {
-  let leaderboard = JSON.parse(localStorage.getItem("leaderboard")) || [];
-  let table = document.getElementById("leaderboard-table");
-  table.innerHTML = "";
-  for (let i = 0; i < Math.min(3, leaderboard.length); i++) {
-    let row = table.insertRow(i);
-    let nameCell = row.insertCell(0);
-    let scoreCell = row.insertCell(1);
-    nameCell.innerHTML = leaderboard[i].name;
-    scoreCell.innerHTML = leaderboard[i].score;
+function updateUsername() {
+  localStorage.removeItem("username");
+  getName();
+}
+
+function piilotaOhjaimet() {
+  document.getElementById("header").style.display = "none";
+}
+
+function naytaOhjaimet() {
+  document.getElementById("header").style.display = "grid";
+}
+
+function replay(mutkat, omput) {
+  if (mutkat.length > 0 && omput.length > 0) {
+    piilotaOhjaimet();
+    gameEngine.uusintaMenossa = true;
+    gameEngine.uusinta(mutkat, omput);
+  } else {
+    alert("Uusintaa ei löydy!");
   }
 }
 
-window.onload = function () {
+function initializePage() {
+
+  // Initialize the 3D graphics.
+  initialize3D();
+
+  // Bind username update to button.
+  document.getElementById("change-username-btn").onclick = updateUsername;
+
+  // Bind update method to form.
+  let form = document.getElementById("points-form");
+  function handleForm(event) {
+    event.preventDefault();
+    let formData = new FormData(form);
+    if (formData.get("points") !== "0") {
+      fetch('submit.php', {
+          method: 'POST',
+          body: formData,
+      });
+    }
+  }
+  form.addEventListener('submit', handleForm);
+
+  // Read and update latest leaderboard.
   displayLeaderboard();
-  updateLeaderboard();
 };
+
+window.onload = initializePage();
